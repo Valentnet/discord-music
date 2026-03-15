@@ -10,7 +10,6 @@ PREFIX = os.getenv("PREFIX", "!")
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
-intents.guilds = True
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
@@ -18,13 +17,7 @@ queue = []
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
-    "quiet": True,
-    "noplaylist": False,
-    "extract_flat": False,
-    "cookiefile": None,
-    "nocheckcertificate": True,
-    "ignoreerrors": True,
-    "source_address": "0.0.0.0"
+    "quiet": True
 }
 
 FFMPEG_OPTIONS = {
@@ -42,23 +35,12 @@ async def on_ready():
 async def join(ctx):
     if ctx.author.voice:
         channel = ctx.author.voice.channel
-
         if ctx.voice_client is None:
             await channel.connect()
-            await ctx.send(f"Masuk ke voice channel {channel.name}")
         else:
             await ctx.voice_client.move_to(channel)
-
     else:
         await ctx.send("Masuk voice channel dulu.")
-
-
-# LEAVE
-@bot.command()
-async def leave(ctx):
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        await ctx.send("Keluar dari voice channel.")
 
 
 # PLAY
@@ -75,34 +57,32 @@ async def play(ctx, url):
         vc = await ctx.author.voice.channel.connect()
 
     with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-        info = ydl.extract_info(url, download=False)
+        try:
+            info = ydl.extract_info(url, download=False)
+        except Exception:
+            await ctx.send("Gagal mengambil audio dari YouTube.")
+            return
 
-        if "entries" in info:
-            for entry in info["entries"]:
-                queue.append(entry["url"])
-        else:
-            queue.append(info["url"])
+    if "entries" in info:
+        info = info["entries"][0]
 
-    await ctx.send("Ditambahkan ke queue.")
+    audio_url = info["url"]
 
-    if not vc.is_playing():
-        await play_next(vc)
-
-
-async def play_next(vc):
-    if len(queue) == 0:
-        return
-
-    url = queue.pop(0)
-
-    source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
-
-    vc.play(
-        source,
-        after=lambda e: asyncio.run_coroutine_threadsafe(
-            play_next(vc), bot.loop
-        )
+    source = await discord.FFmpegOpusAudio.from_probe(
+        audio_url,
+        **FFMPEG_OPTIONS
     )
+
+    vc.play(source)
+
+    await ctx.send(f"Memutar: {info['title']}")
+
+
+# LEAVE
+@bot.command()
+async def leave(ctx):
+    if ctx.voice_client:
+        await ctx.voice_client.disconnect()
 
 
 bot.run(TOKEN)

@@ -18,7 +18,12 @@ queue = []
 YDL_OPTIONS = {
     "format": "bestaudio/best",
     "quiet": True,
-    "cookiefile": "cookies.txt"
+    "noplaylist": False,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "web"]
+        }
+    }
 }
 
 FFMPEG_OPTIONS = {

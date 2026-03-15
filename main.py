@@ -18,7 +18,13 @@ queue = []
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
-    "quiet": True
+    "quiet": True,
+    "noplaylist": False,
+    "extract_flat": False,
+    "cookiefile": None,
+    "nocheckcertificate": True,
+    "ignoreerrors": True,
+    "source_address": "0.0.0.0"
 }
 
 FFMPEG_OPTIONS = {
